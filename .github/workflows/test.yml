@@ -15,7 +15,7 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: 3.14.0-alpha.4
+          python-version: "3.14.0-alpha.4"
 
       - name: Install dependencies
         run: |
@@ -25,17 +25,17 @@ jobs:
       - name: Install Chrome
         uses: browser-actions/setup-chrome@v1
 
-      - name: Upload screenshots
+      - name: Start test server
+        run: |
+          nohup python3 -m http.server 8000 &
+          sleep 3
+
+      - name: Run Selenium tests
+        run: python3 tests/first_test.py
+
+      - name: Upload screenshots if test fails
         if: failure()
         uses: actions/upload-artifact@v3
         with:
           name: screenshots
           path: tests/screenshots
-      
-      - name: Start test server
-        run: |
-          nohup python3 -m http.server 8000 &
-          sleep 2
-
-      - name: Run Selenium tests
-        run: python3 tests/first_test.py
