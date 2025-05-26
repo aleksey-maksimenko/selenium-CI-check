@@ -64,7 +64,6 @@ class FindRubCardTest(unittest.TestCase):
                 print(f"Найден элемент по пути: {path}")
                 element.click()
                 found = True
-                break
             except Exception as e:
                 print(f"По пути {path} не найден элемент или ошибка: {e}")
 
