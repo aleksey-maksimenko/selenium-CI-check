@@ -16,6 +16,7 @@ class BankTransferTest(unittest.TestCase):
         cls.driver = webdriver.Chrome(options=options)
         cls.driver.get("http://localhost:8000/?balance=30000&reserved=20001")
         # не используем implicitly_wait, т.к. лучше ждать явно
+        os.makedirs("tests/screenshots", exist_ok=True)
     
     @classmethod
     def tearDownClass(cls):
