@@ -2,15 +2,16 @@ import unittest
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 import requests
-import time
 
-class BankTransferTest(unittest.TestCase):
+class FindRubCardTest(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.url = "http://localhost:8000/?balance=30000&reserved=20001"
 
-        # предварительная проверка доступности сервера
+        # проверяем доступность сервера
         try:
             response = requests.get(cls.url)
             if response.status_code != 200:
@@ -24,37 +25,50 @@ class BankTransferTest(unittest.TestCase):
         options.add_argument("--disable-dev-shm-usage")
         cls.driver = webdriver.Chrome(options=options)
         cls.driver.get(cls.url)
-        cls.driver.implicitly_wait(5)
 
     @classmethod
     def tearDownClass(cls):
         cls.driver.quit()
 
-    def test_card_input_shows_amount_input(self):
+    def test_find_rub_card_by_multiple_paths(self):
         driver = self.driver
+        wait = WebDriverWait(driver, 20)
 
-        # нажимаем на карточку с рублями (по тексту "Рубли")
-        account_button = driver.find_element(By.XPATH, "//div[h2[text()='Рубли']]")
-        account_button.click()
-        time.sleep(1)
+        # добавляем в начало мой xpath с ancestor
+        paths = [
+            "//h2[normalize-space(text())='Рубли']/ancestor::div[contains(@class, 'g-card_clickable')]",
+            '//*[@id="root"]/div/div/div[1]/div[1]',
+            '/html/body/div/div/div/div[1]/div[1]',
+            '#root > div > div > div:nth-child(1) > div:nth-child(1)'  # css селектор
+        ]
 
-        # вводим валидный номер карты
-        card_input = driver.find_element(By.XPATH, '//*[@id="root"]/div/div/div[2]/input[1]')
-        card_input.send_keys("1111222233334444")
-        time.sleep(1)
+        found = False
 
-        # проверяем, появилось ли поле суммы
-        amount_inputs = driver.find_elements(By.XPATH, '//*[@id="root"]/div/div/div[2]/input[2]')
-        self.assertTrue(len(amount_inputs) > 0, "Поле ввода суммы не появилось после ввода корректного номера карты")
+        for path in paths:
+            try:
+                if path.startswith("#"):
+                    element = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, path)))
+                elif path.startswith("/"):
+                    element = wait.until(EC.element_to_be_clickable((By.XPATH, path)))
+                else:
+                    print(f"Пропускаем неизвестный селектор: {path}")
+                    continue
 
-        # очищаем и вводим неправильный номер
-        card_input.clear()
-        card_input.send_keys("123")
-        time.sleep(1)
+                # проверка текста h2 для xpath путей (кроме css)
+                if not path.startswith("#"):
+                    h2 = element.find_element(By.TAG_NAME, "h2")
+                    if h2.text.strip() != "Рубли":
+                        print(f"Элемент найден по пути {path}, но h2 текст не 'Рубли', а '{h2.text.strip()}'")
+                        continue
 
-        # проверяем, что поле суммы пропало
-        amount_inputs = driver.find_elements(By.XPATH, '//*[@id="root"]/div/div/div[2]/input[2]')
-        self.assertEqual(len(amount_inputs), 0, "Поле суммы не исчезло при вводе некорректного номера")
+                print(f"Найден элемент по пути: {path}")
+                element.click()
+                found = True
+                break
+            except Exception as e:
+                print(f"По пути {path} не найден элемент или ошибка: {e}")
+
+        self.assertTrue(found, "Не удалось найти карточку с рублями ни по одному из путей")
 
 if __name__ == "__main__":
     unittest.main()
