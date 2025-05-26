@@ -25,6 +25,13 @@ jobs:
       - name: Install Chrome
         uses: browser-actions/setup-chrome@v1
 
+      - name: Upload screenshots
+        if: failure()
+        uses: actions/upload-artifact@v3
+        with:
+          name: screenshots
+          path: tests/screenshots
+      
       - name: Start test server
         run: |
           nohup python3 -m http.server 8000 &
